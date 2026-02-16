@@ -1,150 +1,15 @@
-# multimodal-emotion-recognition
+Multimodal Emotion Recognition using Speech and Text
 
-Multimodal Emotion Recognition System
-Overview
+This project implements a multimodal emotion recognition system that evaluates and compares speech-only, text-only, and fused multimodal approaches for classifying emotions. The system is developed and evaluated using the Toronto Emotional Speech Set, which consists of emotionally spoken single-word utterances across seven emotion categories: Angry, Disgust, Fear, Happy, Neutral, Pleasant Surprise, and Sad. Since the words in TESS are semantically neutral (e.g., “chair”, “dog”, “book”), emotional information is primarily conveyed through acoustic and prosodic cues rather than textual semantics.
 
-This project implements a multimodal emotion recognition pipeline using:
+The speech-only model serves as the temporal modelling block of the system. Audio files are processed using MFCC (Mel-Frequency Cepstral Coefficient) feature extraction, generating 40-dimensional spectral representations. Temporal aggregation is performed using mean pooling to convert variable-length sequences into fixed-length feature vectors. These features are then passed through a fully connected neural network trained using CrossEntropyLoss and the Adam optimizer. This architecture was selected because MFCC features effectively capture vocal tract characteristics and emotional prosody, while a lightweight multilayer perceptron (MLP) provides stable learning for a relatively small dataset without overfitting.
 
-Speech-only modelling (acoustic features)
+The text-only model represents the contextual modelling block. A pretrained BERT-base-uncased was fine-tuned with a classification head for emotion prediction. BERT was chosen because it captures contextual semantic representations using transformer-based self-attention mechanisms. However, due to the nature of the TESS dataset—where lexical content is emotionally neutral—the text-only model does not receive meaningful emotional cues from the input text. As a result, the text-only accuracy remains close to random baseline (approximately 0.15 for seven classes), which is consistent with theoretical expectations.
 
-Text-only modelling (contextual transformer)
+The multimodal fusion model integrates representations from both speech and text modalities. A late fusion strategy is implemented at the feature level: the speech branch and text branch each project their representations through linear layers, after which the features are concatenated and passed through a final MLP classifier. Late fusion was selected because it allows independent modality learning and prevents a weak modality (text, in this case) from degrading the stronger modality’s representation. In experiments, fusion performance was comparable to speech-only performance, confirming that speech is the dominant modality in this dataset.
 
-Multimodal fusion (feature-level concatenation)
+Experimental evaluation shows that the speech-only model achieves strong classification performance, as emotional differences in TESS are primarily expressed through prosodic variation such as pitch, energy, and spectral distribution. Emotions such as Angry and Happy are easier to classify due to their distinct acoustic intensity and pitch dynamics. In contrast, Neutral, Sad, and Pleasant Surprise are more difficult to separate because they exhibit subtler prosodic differences and overlapping spectral characteristics. The text-only model performs near chance level, demonstrating the absence of semantic emotional signals in the dataset. Consequently, multimodal fusion does not significantly outperform speech-only modelling, as there is limited complementary information between modalities.
 
-The dataset used is the Toronto Emotional Speech Set.
+Feature-space analysis further supports these findings. Representations extracted from the temporal modelling block show clear clustering of emotion categories, indicating strong acoustic separability. In contrast, contextual representations from the text model exhibit significant overlap between classes. The fusion representations largely mirror the speech representation clusters, confirming that speech dominates the multimodal decision process in this setting.
 
-Dataset
-
-TESS contains emotionally spoken single-word utterances across 7 emotions:
-
-Angry
-
-Disgust
-
-Fear
-
-Happy
-
-Neutral
-
-Pleasant Surprise (ps)
-
-Sad
-
-Important note:
-
-The spoken words are semantically neutral (e.g., “chair”, “dog”), meaning that emotion is primarily encoded in prosody rather than lexical content.
-
-Architecture
-1️⃣ Speech-Only Model (Temporal Modelling Block)
-Pipeline
-
-Audio → MFCC extraction → Mean pooling → MLP classifier
-
-Details
-
-40-dimensional MFCC features (using librosa)
-
-Temporal aggregation via mean pooling
-
-Fully connected neural network
-
-CrossEntropyLoss
-
-Adam optimizer
-
-Rationale
-
-MFCCs effectively capture spectral and prosodic cues relevant to emotion classification. Given the dataset size, a lightweight MLP was chosen to avoid overfitting.
-
-2️⃣ Text-Only Model (Contextual Modelling Block)
-Architecture
-
-Fine-tuned BERT-base-uncased with classification head.
-
-Rationale
-
-BERT captures contextual semantic representations. However, since TESS contains emotionally neutral words, the text modality lacks discriminative emotional information.
-
-Result:
-
-Text-only accuracy ≈ random baseline (~0.15 for 7 classes).
-
-3️⃣ Multimodal Fusion Model (Fusion Block)
-Architecture
-
-Speech branch → Linear projection
-
-Text branch → Linear projection
-
-Feature concatenation
-
-Final MLP classifier
-
-Fusion type: Late fusion at representation level.
-
-Rationale
-
-Late fusion allows independent modality learning and prevents noisy text features from degrading performance.
-
-Experiments
-Speech-Only
-
-20 epochs
-
-Adam optimizer
-
-Strong convergence
-
-High test accuracy
-
-Text-Only
-
-5 epochs
-
-Fine-tuned BERT
-
-Accuracy ≈ 0.15 (near random baseline)
-
-Multimodal Fusion
-
-Feature concatenation
-
-Accuracy comparable to speech-only model
-
-Observation:
-
-Fusion does not significantly outperform speech-only because text modality lacks complementary emotional signal in TESS.
-
-Analysis
-Easiest Emotions
-
-Angry
-
-Happy
-
-Reason:
-High pitch variation and strong energy patterns.
-
-Hardest Emotions
-
-Neutral
-
-Sad
-
-Pleasant Surprise
-
-Reason:
-Subtle prosodic differences and overlapping spectral characteristics.
-
-When Does Fusion Help?
-
-Fusion is most beneficial when modalities provide complementary signals.
-
-In TESS:
-
-Speech dominates
-
-Text adds minimal information
-
-For stronger multimodal benefit, datasets such as IEMOCAP would be more suitable.
+Overall, this project demonstrates that multimodal systems benefit from complementary cross-modal information, and that dataset characteristics strongly influence modality contribution. While speech modelling performs effectively on TESS, meaningful multimodal improvement would require semantically rich emotional transcripts such as those available in datasets like IEMOCAP. This study highlights the importance of understanding modality relevance when designing multimodal emotion recognition architectures.
